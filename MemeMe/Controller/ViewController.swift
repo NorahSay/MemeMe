@@ -29,6 +29,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     func textStyle(textField : UITextField) {
         textField.defaultTextAttributes = memeTextAttributes
         textField.textAlignment = .center
+        
+        //set delegate
+        self.topTextField.delegate = self
+        self.bottomTextField.delegate = self
     }
     
     // MARK: Functions on launch
@@ -36,13 +40,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         super.viewDidLoad()
         shareButton.isEnabled = false
         
-        // MARK: set delegate
-        self.topTextField.delegate = self
-        self.bottomTextField.delegate = self
-        
         //Apply text style
         textStyle(textField: topTextField)
         textStyle(textField: bottomTextField)
+        
         
     }
     
@@ -66,21 +67,22 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     // MARK: Choose photos
     
-    //From photo album
-    @IBAction func pickPhotoFromAlbum(_ sender: UIBarButtonItem) {
+    func presentImagePickerWith(sourceType: UIImagePickerController.SourceType) {
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = self
-        imagePicker.sourceType = .photoLibrary
+        imagePicker.sourceType = sourceType
         self.present(imagePicker, animated: true, completion: nil)
     }
     
+    //From photo album
+    @IBAction func pickPhotoFromAlbum(_ sender: UIBarButtonItem) {
+        presentImagePickerWith(sourceType: .photoLibrary)
+        
+    }
     
     //From camera
     @IBAction func pickPhotoFromCamera(_ sender: UIBarButtonItem) {
-        let imagePicker = UIImagePickerController()
-        imagePicker.delegate = self
-        imagePicker.sourceType = .camera
-        self.present(imagePicker, animated: true, completion: nil)
+        presentImagePickerWith(sourceType: .camera)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
@@ -101,17 +103,21 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     // MARK: Share image
     
     @IBAction func shareImage(_ sender: UIBarButtonItem) {
-        let memedImage = save()
+        let memedImage = generateMemedImage()
         let activityVC = UIActivityViewController(activityItems: [memedImage], applicationActivities: nil)
         activityVC.popoverPresentationController?.sourceView = self.view
+        activityVC.completionWithItemsHandler = {(activityType: UIActivity.ActivityType?, completed: Bool, returnedItems: [Any]?, error: Error?) in
+            if completed {
+                self.save(memedImage: memedImage)
+            }
+        }
         self.present(activityVC, animated: true, completion: nil)
     }
     
     //Generate memed Image
     func generateMemedImage() -> UIImage {
         //hide toolbar and navbar
-        navigationController?.isNavigationBarHidden = true
-        navigationController?.isToolbarHidden = true
+        configureBars(false)
         
         //render view to image
         UIGraphicsBeginImageContext(self.view.frame.size)
@@ -120,17 +126,19 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         UIGraphicsEndImageContext()
         
         //Show toolbar and navbar
-        navigationController?.isNavigationBarHidden = false
-        navigationController?.isToolbarHidden = false
+        configureBars(true)
         return memedImage
+    }
+    
+    func configureBars(_ isHidden : Bool) {
+        navigationController?.isNavigationBarHidden = !isHidden
+        navigationController?.isToolbarHidden = !isHidden
     }
     
     
     // Save image
-    func save() -> UIImage {
-        let memedImage = generateMemedImage()
+    func save(memedImage : UIImage){
         let meme = MemeData(topTextField: topTextField.text ?? "", bottomTextField: bottomTextField.text ?? "", originalImage: imageView.image!, memedImage: memedImage)
-        return meme.memedImage
     }
     
     
