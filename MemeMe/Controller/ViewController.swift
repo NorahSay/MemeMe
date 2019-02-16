@@ -20,7 +20,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet weak var historyButton: UIBarButtonItem!
     
     // MARK: Variables
-    var currentImage : UIImage?
+    var currentImage : UIImage!
     var topText : String?
     var bottomText : String?
 
@@ -39,10 +39,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+        imageView.image = currentImage
         
-        if let currentImage = currentImage {
-            imageView.image = currentImage
-        }
         if let topText = topText {
             topTextField.text = topText
         }

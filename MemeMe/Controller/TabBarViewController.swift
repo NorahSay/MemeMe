@@ -18,6 +18,19 @@ class TabBarViewController: UITabBarController {
     
     func setCustomBackButton() {
         navigationItem.backBarButtonItem = UIBarButtonItem(title: "Sent Meme", style: .plain, target: nil, action: nil)
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(new))
+    }
+    
+    @objc func new() {
+        if let myController  = self.navigationController?.viewControllers[0] as? ViewController {
+            myController.currentImage = nil
+            myController.topText = "TOP"
+            myController.bottomText = "BOTTOM"
+            myController.shareButton.isEnabled = false
+            
+            navigationController?.popToViewController(myController, animated: true)
+        }
     }
     
 }
