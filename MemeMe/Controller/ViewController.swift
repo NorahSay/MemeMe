@@ -17,33 +17,21 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet weak var shareButton: UIBarButtonItem!
     @IBOutlet weak var cameraButton: UIBarButtonItem!
     @IBOutlet weak var albumButton: UIBarButtonItem!
+    @IBOutlet weak var historyButton: UIBarButtonItem!
     
-    // MARK: Meme text style
-    let memeTextAttributes: [NSAttributedString.Key: Any] = [
-        NSAttributedString.Key.strokeColor: UIColor.black,
-        NSAttributedString.Key.foregroundColor: UIColor.white,
-        NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
-        NSAttributedString.Key.strokeWidth:  -3.0
-    ]
+    // MARK: Variables
+    var currentImage : UIImage?
+    var topText : String?
+    var bottomText : String?
+
     
-    func textStyle(textField : UITextField) {
-        textField.defaultTextAttributes = memeTextAttributes
-        textField.textAlignment = .center
-        
-        //set delegate
-        self.topTextField.delegate = self
-        self.bottomTextField.delegate = self
-    }
-    
-    // MARK: Functions on launch
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         shareButton.isEnabled = false
         
-        //Apply text style
         textStyle(textField: topTextField)
         textStyle(textField: bottomTextField)
-        
         
     }
     
@@ -51,18 +39,25 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+        
+        if let currentImage = currentImage {
+            imageView.image = currentImage
+        }
+        if let topText = topText {
+            topTextField.text = topText
+        }
+        if let bottomText = bottomText {
+            bottomTextField.text = bottomText
+        }
     }
     
-    // MARK: Toggle status bar on tap
-    
-    override var prefersStatusBarHidden: Bool {
-        return navigationController?.isNavigationBarHidden == true
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(true)
+        
+        currentImage = imageView.image
+        topText = topTextField.text
+        bottomText = bottomTextField.text
     }
-
-    override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
-        return UIStatusBarAnimation.slide
-    }
-    
     
     
     // MARK: Choose photos
@@ -74,20 +69,18 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         self.present(imagePicker, animated: true, completion: nil)
     }
     
-    //From photo album
     @IBAction func pickPhotoFromAlbum(_ sender: UIBarButtonItem) {
         presentImagePickerWith(sourceType: .photoLibrary)
-        
     }
     
-    //From camera
     @IBAction func pickPhotoFromCamera(_ sender: UIBarButtonItem) {
         presentImagePickerWith(sourceType: .camera)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[.originalImage] as? UIImage {
-            imageView.image = image
+            currentImage = image
+            imageView.image = currentImage
             shareButton.isEnabled = true
             dismiss(animated: true, completion: nil)
         }
@@ -100,7 +93,24 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     
     
-    // MARK: Share image
+    
+    
+    // MARK: Share and Save Meme Images
+    
+    func generateMemedImage() -> UIImage {
+        
+        configureBars(false)
+    
+        //render view to image
+        UIGraphicsBeginImageContext(self.view.frame.size)
+        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
+        let memedImage : UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        configureBars(true)
+        return memedImage
+    }
+    
     
     @IBAction func shareImage(_ sender: UIBarButtonItem) {
         let memedImage = generateMemedImage()
@@ -114,39 +124,50 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         self.present(activityVC, animated: true, completion: nil)
     }
     
-    //Generate memed Image
-    func generateMemedImage() -> UIImage {
-        //hide toolbar and navbar
-        configureBars(false)
+    
+    func save(memedImage : UIImage){
+        let meme = Meme(topTextField: topTextField.text ?? "", bottomTextField: bottomTextField.text ?? "", originalImage: imageView.image!, memedImage: memedImage)
         
-        //render view to image
-        UIGraphicsBeginImageContext(self.view.frame.size)
-        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
-        let memedImage : UIImage = UIGraphicsGetImageFromCurrentImageContext()!
-        UIGraphicsEndImageContext()
-        
-        //Show toolbar and navbar
-        configureBars(true)
-        return memedImage
+        //Add data to the memes array in the AppDelegate
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        appDelegate.memes.append(meme)
     }
     
+    
+    //Hide toolbar and navbar
     func configureBars(_ isHidden : Bool) {
         navigationController?.isNavigationBarHidden = !isHidden
         navigationController?.isToolbarHidden = !isHidden
     }
     
     
-    // Save image
-    func save(memedImage : UIImage){
-        let meme = MemeData(topTextField: topTextField.text ?? "", bottomTextField: bottomTextField.text ?? "", originalImage: imageView.image!, memedImage: memedImage)
-    }
     
     
-    // MARK: Textfield functions
+    
+    
+    // MARK: Textfield Functions
+    
     var edited1 =  false
     var edited2 = false
     
-    //clear default text when user start editing but keep user input
+    func textStyle(textField : UITextField) {
+        
+        let memeTextAttributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key.strokeColor: UIColor.black,
+            NSAttributedString.Key.foregroundColor: UIColor.white,
+            NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
+            NSAttributedString.Key.strokeWidth:  -3.0
+        ]
+        
+        textField.defaultTextAttributes = memeTextAttributes
+        textField.textAlignment = .center
+        
+        //Set Textfield Delegates
+        self.topTextField.delegate = self
+        self.bottomTextField.delegate = self
+    }
+    
+    //Clear default text when user start editing but keep user input
     func textFieldDidBeginEditing(_ textField: UITextField) {
         if !edited1 && textField.tag == 0 {
             textField.text = ""
@@ -156,11 +177,12 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             edited2 = true
         }
         
-        //dimiss keyboard when user tap screen
+        //Dimiss keyboard when user tap screen
         let tap = UITapGestureRecognizer(target: self, action: #selector(self.dimissKeyboard(_:)))
         self.view.addGestureRecognizer(tap)
         
     }
+    
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
@@ -175,13 +197,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     
-    
-    
-    
-    
-    
-    
-
-
 }
+
+
 

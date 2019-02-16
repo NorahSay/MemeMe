@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-struct MemeData {
+struct Meme {
     var topTextField : String?
     var bottomTextField : String?
     var originalImage : UIImage
